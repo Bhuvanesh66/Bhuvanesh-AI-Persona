@@ -1,36 +1,33 @@
-"""Retell AI custom-LLM-server webhook.
+"""Retell AI Custom LLM server — WebSocket endpoint.
 
-Retell calls POST /voice/retell whenever the caller finishes speaking.
-We run hybrid RAG + Haiku tool loop and stream the reply in Retell's SSE format.
+Retell connects to wss://your-domain/llm-websocket/{call_id}
+and sends JSON frames; we reply with streamed JSON frames.
 
-Retell request body:
+Retell → server frame (response_required):
   {
-    "interaction_type": "response_required" | "reminder_required" | "update_only",
+    "interaction_type": "response_required" | "reminder_required" | "call_details",
     "response_id": <int>,
     "transcript": [{"role": "agent"|"user", "content": "<str>"}]
   }
 
-Retell SSE response format (one event per chunk):
-  data: {"response_id": N, "content": "...", "content_complete": false, "end_call": false}
-  ...
-  data: {"response_id": N, "content": "...", "content_complete": true,  "end_call": false}
+Server → Retell frames (stream chunks, last has content_complete=true):
+  {"response_id": N, "content": "...", "content_complete": false, "end_call": false}
+  {"response_id": N, "content": "...", "content_complete": true,  "end_call": false}
 """
 from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.voice.voice_answer import voice_respond
 
-router = APIRouter(prefix="/voice", tags=["voice"])
+router = APIRouter(tags=["voice"])
 
-_WORDS_PER_CHUNK = 8  # tune for TTS TTFB vs chunking overhead
+_WORDS_PER_CHUNK = 8
 
 
-def _retell_to_anthropic(transcript: list[dict]) -> list[dict]:
-    """Map Retell role names to Anthropic role names."""
+def _retell_to_openai(transcript: list[dict]) -> list[dict]:
     role_map = {"agent": "assistant", "user": "user"}
     return [
         {"role": role_map.get(t["role"], "user"), "content": t["content"]}
@@ -39,33 +36,37 @@ def _retell_to_anthropic(transcript: list[dict]) -> list[dict]:
     ]
 
 
-@router.post("/retell")
-async def retell_webhook(request: Request) -> StreamingResponse:
-    body = await request.json()
-    interaction_type = body.get("interaction_type", "response_required")
+@router.websocket("/llm-websocket/{call_id}")
+async def retell_websocket(websocket: WebSocket, call_id: str):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_text()
+            request = json.loads(data)
+            interaction_type = request.get("interaction_type", "")
 
-    if interaction_type == "update_only":
-        return StreamingResponse(iter([]), media_type="text/event-stream")
+            if interaction_type == "call_details":
+                continue
 
-    response_id: int = body.get("response_id", 0)
-    transcript = body.get("transcript", [])
-    messages = _retell_to_anthropic(transcript)
+            if interaction_type not in ("response_required", "reminder_required"):
+                continue
 
-    def gen():
-        text = voice_respond(messages)
-        if not text:
-            text = "I'm here — go ahead."
+            response_id: int = request.get("response_id", 0)
+            transcript = request.get("transcript", [])
+            messages = _retell_to_openai(transcript)
 
-        words = text.split()
-        for i in range(0, max(len(words), 1), _WORDS_PER_CHUNK):
-            chunk_words = words[i : i + _WORDS_PER_CHUNK]
-            is_last = (i + _WORDS_PER_CHUNK) >= len(words)
-            payload = {
-                "response_id": response_id,
-                "content": " ".join(chunk_words) + ("" if is_last else " "),
-                "content_complete": is_last,
-                "end_call": False,
-            }
-            yield f"data: {json.dumps(payload)}\n\n"
+            text = voice_respond(messages) or "I'm here — go ahead."
 
-    return StreamingResponse(gen(), media_type="text/event-stream")
+            words = text.split()
+            for i in range(0, max(len(words), 1), _WORDS_PER_CHUNK):
+                chunk = words[i : i + _WORDS_PER_CHUNK]
+                is_last = (i + _WORDS_PER_CHUNK) >= len(words)
+                await websocket.send_json({
+                    "response_id": response_id,
+                    "content": " ".join(chunk) + ("" if is_last else " "),
+                    "content_complete": is_last,
+                    "end_call": False,
+                })
+
+    except WebSocketDisconnect:
+        pass
