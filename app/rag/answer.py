@@ -5,6 +5,7 @@ fork-authorship honesty rule, and prompt-injection resistance.
 """
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 
 from openai import OpenAI
@@ -12,6 +13,8 @@ from openai import OpenAI
 from app.config import settings
 from app.rag.retriever import Chunk, retrieve
 from app.voice.voice_answer import BIO
+
+logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
@@ -79,8 +82,17 @@ def _sources(chunks: list[Chunk]) -> list[dict]:
     ]
 
 
+def _safe_retrieve(question: str) -> list[Chunk]:
+    """Retrieve context chunks; return empty list on any failure (rate-limit, DB down, etc.)."""
+    try:
+        return retrieve(question)
+    except Exception as exc:
+        logger.warning("Retrieval failed (falling back to BIO-only): %s", exc)
+        return []
+
+
 def answer(question: str, history: list[dict] | None = None) -> dict:
-    chunks = retrieve(question)
+    chunks = _safe_retrieve(question)
     resp = _client().chat.completions.create(
         model=settings.chat_model,
         max_tokens=1024,
@@ -91,8 +103,12 @@ def answer(question: str, history: list[dict] | None = None) -> dict:
 
 
 def answer_stream(question: str, history: list[dict] | None = None):
-    """Yield text deltas; final item is a dict with the sources list."""
-    chunks = retrieve(question)
+    """Yield text deltas; final item is a dict with the sources list.
+
+    Retrieval errors are swallowed so the LLM always gets called with at least
+    the hardcoded BIO — the caller never sees a silent empty response.
+    """
+    chunks = _safe_retrieve(question)
     stream = _client().chat.completions.create(
         model=settings.chat_model,
         max_tokens=1024,
@@ -100,6 +116,8 @@ def answer_stream(question: str, history: list[dict] | None = None):
         stream=True,
     )
     for chunk in stream:
+        if not chunk.choices:
+            continue
         delta = chunk.choices[0].delta.content
         if delta:
             yield delta

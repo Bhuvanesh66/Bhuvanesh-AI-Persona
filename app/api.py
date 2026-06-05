@@ -51,11 +51,17 @@ def chat(req: ChatRequest) -> dict:
 @app.post("/chat/stream")
 def chat_stream(req: ChatRequest) -> StreamingResponse:
     def gen():
-        for item in answer_stream(req.message, req.history):
-            if isinstance(item, dict):  # final sources payload
-                yield f"event: sources\ndata: {json.dumps(item)}\n\n"
-            else:
-                yield f"data: {json.dumps({'delta': item})}\n\n"
+        try:
+            for item in answer_stream(req.message, req.history):
+                if isinstance(item, dict):  # final sources payload
+                    yield f"event: sources\ndata: {json.dumps(item)}\n\n"
+                else:
+                    yield f"data: {json.dumps({'delta': item})}\n\n"
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error("chat_stream error: %s", exc)
+            msg = "I'm having trouble connecting right now. Please try again in a moment."
+            yield f"data: {json.dumps({'delta': msg})}\n\n"
         yield "event: done\ndata: {}\n\n"
 
     return StreamingResponse(gen(), media_type="text/event-stream")
