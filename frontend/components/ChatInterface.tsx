@@ -46,14 +46,23 @@ const WELCOME: Message = {
     "Hi! I'm Bhuvanesh's AI representative. Ask me anything about his background, skills, or projects — or book a 30-min call to connect with him directly.",
 }
 
+const SUGGESTIONS = [
+  'What are your technical skills?',
+  'Tell me about your projects',
+  "What's your educational background?",
+  'Are you open to internship opportunities?',
+]
+
 // ── main component ────────────────────────────────────────────────────────────
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([WELCOME])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(true)
   const nextId = useRef(1)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -66,11 +75,12 @@ export default function ChatInterface() {
       .map((m) => ({ role: m.role, content: m.content }))
   }
 
-  async function send() {
-    const q = input.trim()
+  async function send(text?: string) {
+    const q = (text ?? input).trim()
     if (!q || loading) return
     setInput('')
     setLoading(true)
+    setShowSuggestions(false)
 
     const userId = nextId.current++
     const assistantId = nextId.current++
@@ -99,7 +109,6 @@ export default function ChatInterface() {
         if (done) break
         buf += decoder.decode(value, { stream: true })
 
-        // SSE blocks are separated by \n\n
         const parts = buf.split('\n\n')
         buf = parts.pop() ?? ''
 
@@ -132,7 +141,12 @@ export default function ChatInterface() {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
-            ? { ...m, content: 'Something went wrong — please try again.', streaming: false }
+            ? {
+                ...m,
+                content:
+                  'Something went wrong — the server may be waking up. Please try again in a moment.',
+                streaming: false,
+              }
             : m
         )
       )
@@ -141,6 +155,7 @@ export default function ChatInterface() {
         prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m))
       )
       setLoading(false)
+      inputRef.current?.focus()
     }
   }
 
@@ -152,22 +167,36 @@ export default function ChatInterface() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50">
+    <div className="flex flex-col h-screen bg-gray-50">
       {/* ── header ── */}
-      <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3 shadow-sm">
-        <Avatar size="md" />
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-slate-900 text-sm leading-none">Bhuvanesh M S</p>
-          <p className="text-xs text-slate-500 mt-0.5 truncate">
-            AI Engineer · Scaler School of Technology · BITS Pilani
-          </p>
+      <header
+        className="relative flex items-center gap-4 px-5 py-4 shadow-sm"
+        style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}
+      >
+        {/* avatar */}
+        <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white font-bold text-base flex-shrink-0 ring-2 ring-white/30">
+          BM
         </div>
+
+        {/* name + title */}
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-white text-base leading-tight">Bhuvanesh M S</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+            <p className="text-xs text-indigo-200 truncate">
+              AI Engineer · Scaler School of Technology · BITS Pilani
+            </p>
+          </div>
+        </div>
+
+        {/* book a call */}
         {CALCOM_URL && (
           <a
             href={CALCOM_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-shrink-0 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-full transition-colors"
+            className="flex-shrink-0 text-xs font-semibold bg-white text-indigo-700 px-4 py-2 rounded-full
+                       hover:bg-indigo-50 transition-colors shadow-sm"
           >
             Book a Call
           </a>
@@ -180,102 +209,145 @@ export default function ChatInterface() {
           {messages.map((msg) => (
             <MessageBubble key={msg.id} msg={msg} />
           ))}
+
+          {/* suggestion chips — visible until first user message */}
+          {showSuggestions && !loading && (
+            <div className="flex flex-wrap gap-2 pl-9">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => send(s)}
+                  className="text-xs px-3 py-1.5 rounded-full border border-indigo-200 text-indigo-600
+                             bg-white hover:bg-indigo-50 hover:border-indigo-400 transition-colors shadow-sm"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div ref={bottomRef} />
         </div>
       </main>
 
-      {/* ── input ── */}
-      <footer className="bg-white border-t border-slate-200 px-4 py-3">
-        <div className="max-w-2xl mx-auto flex gap-2">
+      {/* ── input bar ── */}
+      <footer className="bg-white border-t border-gray-200 px-4 py-3">
+        <div className="max-w-2xl mx-auto flex gap-2 items-center">
           <input
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKey}
             disabled={loading}
             placeholder="Ask about Bhuvanesh's skills, projects, or experience…"
-            className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none
-                       focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                       disabled:bg-slate-50 disabled:text-slate-400"
+            className="flex-1 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm
+                       outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent
+                       focus:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <button
-            onClick={send}
+            onClick={() => send()}
             disabled={loading || !input.trim()}
-            className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white
-                       transition hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed
-                       flex-shrink-0"
+            className="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white
+                       transition-all hover:bg-indigo-700 active:scale-95
+                       disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed
+                       flex-shrink-0 shadow-sm"
           >
-            {loading ? '…' : 'Send'}
+            {loading ? (
+              <span className="flex items-center gap-1.5">
+                <span className="w-1 h-1 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1 h-1 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1 h-1 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
+            ) : (
+              'Send'
+            )}
           </button>
         </div>
+        <p className="text-center text-[10px] text-gray-300 mt-2">
+          AI-generated responses · May not reflect real-time information
+        </p>
       </footer>
     </div>
   )
 }
 
-// ── sub-components ────────────────────────────────────────────────────────────
+// ── avatar ────────────────────────────────────────────────────────────────────
 
-function Avatar({ size }: { size: 'sm' | 'md' }) {
-  const cls = size === 'sm' ? 'w-7 h-7 text-xs' : 'w-10 h-10 text-sm'
+function Avatar() {
   return (
     <div
-      className={`${cls} rounded-full bg-indigo-600 flex items-center justify-center
-                  text-white font-semibold flex-shrink-0`}
+      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs
+                 font-bold flex-shrink-0 self-end"
+      style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}
     >
       BM
     </div>
   )
 }
 
+// ── message bubble ────────────────────────────────────────────────────────────
+
 function MessageBubble({ msg }: { msg: Message }) {
   const [open, setOpen] = useState(false)
   const isUser = msg.role === 'user'
 
   return (
-    <div className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}>
-      {!isUser && <Avatar size="sm" />}
+    <div className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+      {!isUser && <Avatar />}
 
-      <div className={`max-w-[78%] flex flex-col ${isUser ? 'items-end' : 'items-start'} gap-1.5`}>
+      <div
+        className={`max-w-[78%] flex flex-col gap-1 ${isUser ? 'items-end' : 'items-start'}`}
+      >
         {/* bubble */}
         <div
-          className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+          className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap min-h-[44px] ${
             isUser
-              ? 'bg-indigo-600 text-white rounded-tr-none'
-              : 'bg-white text-slate-800 border border-slate-200 shadow-sm rounded-tl-none'
+              ? 'bg-indigo-600 text-white rounded-br-sm'
+              : 'bg-white text-gray-800 border border-gray-100 shadow-sm rounded-bl-sm'
           }`}
         >
           {msg.content}
 
-          {/* typing indicator — empty streaming message */}
+          {/* typing dots when waiting for first token */}
           {msg.streaming && !msg.content && (
-            <span className="inline-flex gap-1 items-center">
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0ms]" />
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:150ms]" />
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:300ms]" />
+            <span className="inline-flex items-center gap-1 h-4">
+              <span
+                className="w-2 h-2 bg-gray-300 rounded-full animate-bounce"
+                style={{ animationDelay: '0ms' }}
+              />
+              <span
+                className="w-2 h-2 bg-gray-300 rounded-full animate-bounce"
+                style={{ animationDelay: '160ms' }}
+              />
+              <span
+                className="w-2 h-2 bg-gray-300 rounded-full animate-bounce"
+                style={{ animationDelay: '320ms' }}
+              />
             </span>
           )}
 
           {/* blinking cursor while streaming text */}
           {msg.streaming && msg.content && (
-            <span className="ml-0.5 inline-block w-0.5 h-3.5 bg-slate-500 animate-pulse align-middle" />
+            <span className="ml-0.5 inline-block w-0.5 h-3.5 bg-gray-400 animate-pulse align-middle" />
           )}
         </div>
 
         {/* sources */}
         {msg.sources && msg.sources.length > 0 && (
-          <div>
+          <div className="w-full">
             <button
               onClick={() => setOpen((v) => !v)}
-              className="text-[11px] text-slate-400 hover:text-slate-600 transition-colors"
+              className="text-[11px] text-gray-400 hover:text-indigo-500 transition-colors"
             >
               {open
                 ? '▾ hide sources'
                 : `▸ ${msg.sources.length} source${msg.sources.length > 1 ? 's' : ''}`}
             </button>
             {open && (
-              <ul className="mt-1 pl-2 border-l border-slate-200 space-y-0.5">
+              <ul className="mt-1 pl-2 border-l-2 border-indigo-100 space-y-1">
                 {msg.sources.map((s) => (
-                  <li key={s.n} className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                    <span className="font-mono text-slate-300">[{s.n}]</span>
+                  <li key={s.n} className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                    <span className="font-mono text-gray-300">[{s.n}]</span>
                     <span className="truncate">{s.title}</span>
                     {s.is_fork && (
                       <span className="shrink-0 text-[9px] border border-amber-300 text-amber-500 px-1 rounded">
