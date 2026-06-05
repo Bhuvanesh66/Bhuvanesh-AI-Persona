@@ -1,0 +1,13 @@
+# Next.js build output
+.next/
+out/
+
+# env files (set these in Vercel dashboard instead)
+.env.local
+.env*.local
+
+# deps
+node_modules/
+
+# OS
+.DS_Store
