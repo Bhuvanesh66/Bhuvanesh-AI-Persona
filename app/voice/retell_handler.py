@@ -94,6 +94,8 @@ async def _stream_reply(messages: list[dict], response_id: int, ws: WebSocket) -
     has_tools = False
 
     async for chunk in stream:
+        if not chunk.choices:
+            continue
         choice = chunk.choices[0]
         delta = choice.delta
 
