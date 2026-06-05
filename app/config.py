@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     embed_dim: int = 1024
 
     # LLM models (GitHub Models free tier)
-    chat_model: str = "gpt-4o"
+    chat_model: str = "gpt-4o-mini"
     voice_model: str = "gpt-4o-mini"
 
     # Groq (optional alternative — faster, higher rate limit)
