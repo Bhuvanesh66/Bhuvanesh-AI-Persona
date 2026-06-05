@@ -5,8 +5,8 @@ pydantic==2.10.4
 pydantic-settings==2.7.1
 python-dotenv==1.0.1
 
-# --- LLM (the brain) ---
-anthropic==0.69.0
+# --- LLM + Embeddings (GitHub Models — OpenAI-compatible, uses GITHUB_TOKEN) ---
+openai>=1.59.6
 
 # --- Vector store (Supabase / Postgres + pgvector) ---
 psycopg[binary]==3.2.3
@@ -15,7 +15,3 @@ pgvector==0.3.6
 # --- Ingestion ---
 requests==2.32.3          # GitHub REST API
 pypdf==5.1.0              # resume PDF parsing
-
-# --- Embeddings (install at least one; chosen via EMBEDDING_PROVIDER) ---
-voyageai==0.3.2           # default: voyage-3 (Anthropic-recommended)
-openai==1.59.6            # alternative: text-embedding-3-large

@@ -65,43 +65,49 @@ def book_meeting(name: str, email: str, datetime_iso: str, notes: str = "") -> d
     }
 
 
-# Anthropic tool definitions for use in messages.create(tools=[...])
+# OpenAI-compatible tool definitions (used by voice_answer.py tool loop)
 TOOL_SCHEMAS: list[dict] = [
     {
-        "name": "check_availability",
-        "description": (
-            "Check open meeting slots on Cal.com for a given date. "
-            "Use this before booking so the caller can pick a time."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "date": {
-                    "type": "string",
-                    "description": "Date to check, YYYY-MM-DD format (UTC).",
-                }
+        "type": "function",
+        "function": {
+            "name": "check_availability",
+            "description": (
+                "Check open meeting slots on Cal.com for a given date. "
+                "Use this before booking so the caller can pick a time."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string",
+                        "description": "Date to check, YYYY-MM-DD format (UTC).",
+                    }
+                },
+                "required": ["date"],
             },
-            "required": ["date"],
         },
     },
     {
-        "name": "book_meeting",
-        "description": "Book a 30-minute intro call with Bhuvanesh on Cal.com.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string", "description": "Caller's full name."},
-                "email": {"type": "string", "description": "Caller's email address."},
-                "datetime_iso": {
-                    "type": "string",
-                    "description": "ISO 8601 UTC datetime, e.g. 2026-06-10T10:00:00Z",
+        "type": "function",
+        "function": {
+            "name": "book_meeting",
+            "description": "Book a 30-minute intro call with Bhuvanesh on Cal.com.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Caller's full name."},
+                    "email": {"type": "string", "description": "Caller's email address."},
+                    "datetime_iso": {
+                        "type": "string",
+                        "description": "ISO 8601 UTC datetime, e.g. 2026-06-10T10:00:00Z",
+                    },
+                    "notes": {
+                        "type": "string",
+                        "description": "Optional context for the meeting (company, role).",
+                    },
                 },
-                "notes": {
-                    "type": "string",
-                    "description": "Optional context for the meeting (company, role).",
-                },
+                "required": ["name", "email", "datetime_iso"],
             },
-            "required": ["name", "email", "datetime_iso"],
         },
     },
 ]

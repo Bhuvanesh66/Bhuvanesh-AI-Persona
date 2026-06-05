@@ -1,5 +1,9 @@
-"""Pluggable embedding provider. Both providers emit 1024-dim vectors so the
-pgvector schema stays fixed regardless of choice."""
+"""Pluggable embedding provider. All providers emit 1024-dim vectors
+so the pgvector schema stays fixed regardless of choice.
+
+  github (default) — text-embedding-3-large via GitHub Models, uses GITHUB_TOKEN
+  openai           — text-embedding-3-large via OpenAI, uses OPENAI_API_KEY
+"""
 from __future__ import annotations
 
 from functools import lru_cache
@@ -9,42 +13,41 @@ from app.config import settings
 _BATCH = 64
 
 
-@lru_cache(maxsize=1)
-def _voyage():
-    import voyageai
-
-    return voyageai.Client(api_key=settings.voyage_api_key)
-
-
-@lru_cache(maxsize=1)
-def _openai():
+def _llm_client():
     from openai import OpenAI
+    return OpenAI(
+        base_url=settings.github_models_base_url,
+        api_key=settings.github_token,
+    )
 
+
+@lru_cache(maxsize=1)
+def _github_client():
+    return _llm_client()
+
+
+@lru_cache(maxsize=1)
+def _openai_client():
+    from openai import OpenAI
     return OpenAI(api_key=settings.openai_api_key)
 
 
 def embed(texts: list[str], *, input_type: str = "document") -> list[list[float]]:
-    """Embed a list of texts. input_type is 'document' (corpus) or 'query'."""
     if not texts:
         return []
 
     provider = settings.embedding_provider.lower()
+    client = _github_client() if provider == "github" else _openai_client()
     out: list[list[float]] = []
 
     for i in range(0, len(texts), _BATCH):
         batch = texts[i : i + _BATCH]
-        if provider == "voyage":
-            resp = _voyage().embed(batch, model="voyage-3", input_type=input_type)
-            out.extend(resp.embeddings)
-        elif provider == "openai":
-            resp = _openai().embeddings.create(
-                model="text-embedding-3-large",
-                input=batch,
-                dimensions=settings.embed_dim,  # force 1024 to match schema
-            )
-            out.extend([d.embedding for d in resp.data])
-        else:
-            raise ValueError(f"Unknown EMBEDDING_PROVIDER: {settings.embedding_provider!r}")
+        resp = client.embeddings.create(
+            model=settings.embed_model,
+            input=batch,
+            dimensions=settings.embed_dim,
+        )
+        out.extend([d.embedding for d in resp.data])
 
     return out
 

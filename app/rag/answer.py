@@ -1,22 +1,24 @@
-"""Grounded answer generation with Claude Opus 4.8.
+"""Grounded answer generation via GitHub Models (gpt-4o, OpenAI-compatible).
 
-Enforces the Part B/C requirements: evidence-backed answers, citations,
-refusal when unknown, the fork-authorship honesty rule (PRD §5.1.1), and
-resistance to prompt injection.
+Enforces: evidence-backed answers, citations, refusal when unknown,
+fork-authorship honesty rule, and prompt-injection resistance.
 """
 from __future__ import annotations
 
 from functools import lru_cache
 
-import anthropic
+from openai import OpenAI
 
 from app.config import settings
 from app.rag.retriever import Chunk, retrieve
 
 
 @lru_cache(maxsize=1)
-def _client() -> anthropic.Anthropic:
-    return anthropic.Anthropic(api_key=settings.anthropic_api_key)
+def _client() -> OpenAI:
+    return OpenAI(
+        base_url=settings.github_models_base_url,
+        api_key=settings.github_token,
+    )
 
 
 def _system_prompt() -> str:
@@ -58,7 +60,7 @@ def _format_context(chunks: list[Chunk]) -> str:
     return "\n\n".join(blocks) if blocks else "(no relevant context found)"
 
 
-def _build_messages(question: str, chunks: list[Chunk], history: list[dict] | None):
+def _build_messages(question: str, chunks: list[Chunk], history: list[dict] | None) -> list[dict]:
     history = history or []
     context = _format_context(chunks)
     user_turn = (
@@ -67,7 +69,11 @@ def _build_messages(question: str, chunks: list[Chunk], history: list[dict] | No
         f"Answer using only the context above. Cite blocks as [n]. "
         f"If unsupported, say you don't have it and offer to book a call."
     )
-    return [*history, {"role": "user", "content": user_turn}]
+    return [
+        {"role": "system", "content": _system_prompt()},
+        *history,
+        {"role": "user", "content": user_turn},
+    ]
 
 
 def _sources(chunks: list[Chunk]) -> list[dict]:
@@ -80,29 +86,26 @@ def _sources(chunks: list[Chunk]) -> list[dict]:
 
 def answer(question: str, history: list[dict] | None = None) -> dict:
     chunks = retrieve(question)
-    resp = _client().messages.create(
+    resp = _client().chat.completions.create(
         model=settings.chat_model,
         max_tokens=1024,
-        thinking={"type": "adaptive"},
-        system=[{"type": "text", "text": _system_prompt(),
-                 "cache_control": {"type": "ephemeral"}}],
         messages=_build_messages(question, chunks, history),
     )
-    text = "".join(b.text for b in resp.content if b.type == "text")
+    text = resp.choices[0].message.content or ""
     return {"answer": text, "sources": _sources(chunks)}
 
 
 def answer_stream(question: str, history: list[dict] | None = None):
     """Yield text deltas; final item is a dict with the sources list."""
     chunks = retrieve(question)
-    with _client().messages.stream(
+    stream = _client().chat.completions.create(
         model=settings.chat_model,
         max_tokens=1024,
-        thinking={"type": "adaptive"},
-        system=[{"type": "text", "text": _system_prompt(),
-                 "cache_control": {"type": "ephemeral"}}],
         messages=_build_messages(question, chunks, history),
-    ) as stream:
-        for text in stream.text_stream:
-            yield text
+        stream=True,
+    )
+    for chunk in stream:
+        delta = chunk.choices[0].delta.content
+        if delta:
+            yield delta
     yield {"sources": _sources(chunks)}
