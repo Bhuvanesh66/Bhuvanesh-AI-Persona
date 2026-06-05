@@ -23,9 +23,10 @@ def check_availability(date: str) -> dict:
     resp = requests.get(
         f"{_BASE}/slots/available",
         params={
-            "eventTypeId": settings.calcom_event_type_id,
-            "startTime": f"{date}T00:00:00Z",
-            "endTime": f"{date}T23:59:59Z",
+            "startTime": f"{date}T00:00:00.000Z",
+            "endTime": f"{date}T23:59:59.999Z",
+            "username": settings.calcom_username,
+            "eventSlug": settings.calcom_event_slug,
         },
         headers=_headers(),
         timeout=_TIMEOUT,
@@ -33,8 +34,11 @@ def check_availability(date: str) -> dict:
     resp.raise_for_status()
     data = resp.json()
     slots_by_date = data.get("data", {}).get("slots", {})
-    slots = slots_by_date.get(date, [])
-    times = [s["time"] for s in slots]
+    # slots dict keys may include timezone suffix; find the matching date
+    times = []
+    for key, slot_list in slots_by_date.items():
+        if key.startswith(date):
+            times.extend(s["time"] for s in slot_list)
     return {"date": date, "slots": times, "count": len(times)}
 
 

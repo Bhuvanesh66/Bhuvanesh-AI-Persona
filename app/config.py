@@ -13,19 +13,25 @@ class Settings(BaseSettings):
     persona_name: str = "Bhuvanesh"
     github_owner: str = "Bhuvanesh66"
 
-    # GitHub (used for BOTH corpus ingestion AND GitHub Models LLM/embeddings)
+    # GitHub token — used ONLY for corpus ingest (repo scraping + embeddings)
     github_token: str = ""
 
-    # GitHub Models — OpenAI-compatible endpoint
+    # GitHub Models — OpenAI-compatible endpoint (embeddings only)
     github_models_base_url: str = "https://models.inference.ai.azure.com"
-    chat_model: str = "gpt-4o"          # best instruction following on free tier
-    voice_model: str = "gpt-4o-mini"    # faster TTFT for voice
 
-    # Embeddings
-    embedding_provider: str = "github"   # "github" (default) | "openai"
-    openai_api_key: str = ""             # only needed if embedding_provider="openai"
+    # Embeddings (GitHub Models — free, only used during ingest)
+    embedding_provider: str = "github"
+    openai_api_key: str = ""
     embed_model: str = "text-embedding-3-large"
     embed_dim: int = 1024
+
+    # ── Groq — live LLM for chat + voice ─────────────────────────────────────
+    # Free tier: 14,400 req/day, ~100ms TTFF — much better than GitHub Models
+    # Get key: console.groq.com → API Keys
+    groq_api_key: str = ""
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    chat_model: str = "llama-3.3-70b-versatile"   # best quality on Groq free tier
+    voice_model: str = "llama-3.1-8b-instant"      # lowest latency for voice
 
     # Vector store
     database_url: str = ""
@@ -33,9 +39,11 @@ class Settings(BaseSettings):
     # Resume
     resume_path: str = "data/resume.txt"
 
-    # Cal.com scheduling (optional — only needed for booking feature)
+    # Cal.com scheduling
     calcom_api_key: str = ""
     calcom_event_type_id: int = 0
+    calcom_username: str = ""        # your cal.com username (from cal.com/YOUR-USERNAME)
+    calcom_event_slug: str = "30min" # event slug from the booking URL
 
     # Retrieval knobs
     retrieve_k: int = 6
