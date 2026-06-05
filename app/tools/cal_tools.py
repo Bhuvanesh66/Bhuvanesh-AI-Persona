@@ -62,20 +62,34 @@ def check_availability(date: str) -> dict:
     return {"date": date, "slots": times, "count": len(times)}
 
 
+def _clean_email(email: str) -> str:
+    """Normalize email spoken by a caller, e.g. 'john dot doe at gmail dot com'."""
+    e = email.strip().lower()
+    e = e.replace(" dot ", ".").replace(" at ", "@").replace(" ", "")
+    return e
+
+
 def book_meeting(name: str, email: str, datetime_iso: str, notes: str = "") -> dict:
     """Book a 30-min intro call. datetime_iso: ISO 8601 UTC e.g. 2026-06-10T10:00:00Z"""
+    clean = _clean_email(email)
     body: dict = {
         "eventTypeId": settings.calcom_event_type_id,
         "start": datetime_iso,
         "attendee": {
             "name": name,
-            "email": email,
+            "email": clean,
             "timeZone": "UTC",
             "language": "en",
         },
+        # Cal.com requires standard form fields in bookingFieldsResponses
+        # even when already present in attendee — omitting email causes 400
+        "bookingFieldsResponses": {
+            "name": name,
+            "email": clean,
+        },
     }
     if notes:
-        body["metadata"] = {"notes": notes}
+        body["bookingFieldsResponses"]["notes"] = notes
 
     resp = requests.post(
         f"{_BASE}/bookings",
