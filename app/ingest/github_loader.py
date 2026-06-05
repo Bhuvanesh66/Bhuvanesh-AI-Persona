@@ -175,7 +175,7 @@ def load_repo(repo: dict) -> list[Doc]:
 
 def load_all() -> list[Doc]:
     docs: list[Doc] = []
-    repos = list_repos()[:3]
+    repos = list_repos()
     for i, repo in enumerate(repos, 1):
         tag = "fork" if repo.get("fork") else "orig"
         print(f"  [{i}/{len(repos)}] {repo['name']} ({tag})")
