@@ -1,71 +1,77 @@
-"""Cal.com v1 tools: check availability and book a meeting.
-
-These are called by the voice agent (Haiku tool loop) and can also be
-wired into the chat interface later.
-"""
+"""Cal.com v2 tools: check availability and book a meeting."""
 from __future__ import annotations
 
 import requests
 
 from app.config import settings
 
-_BASE = "https://api.cal.com/v1"
+_BASE = "https://api.cal.com/v2"
 _TIMEOUT = 10
+_API_VERSION = "2024-09-04"
 
 
-def check_availability(date: str) -> dict:
-    """Return available ISO-8601 slots for the given date (YYYY-MM-DD)."""
-    resp = requests.get(
-        f"{_BASE}/availability",
-        params={
-            "apiKey": settings.calcom_api_key,
-            "eventTypeId": settings.calcom_event_type_id,
-            "dateFrom": date,
-            "dateTo": date,
-        },
-        timeout=_TIMEOUT,
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    slots = data.get("slots", {}).get(date, [])
-    return {"date": date, "slots": [s["time"] for s in slots]}
-
-
-def book_meeting(name: str, email: str, datetime_iso: str, notes: str = "") -> dict:
-    """Create a Cal.com booking for a 30-min call.
-
-    datetime_iso: ISO 8601 UTC, e.g. "2026-06-10T10:00:00Z"
-    """
-    resp = requests.post(
-        f"{_BASE}/bookings",
-        params={"apiKey": settings.calcom_api_key},
-        json={
-            "eventTypeId": settings.calcom_event_type_id,
-            "start": datetime_iso,
-            "responses": {
-                "name": name,
-                "email": email,
-                "notes": notes or "",
-            },
-            "timeZone": "UTC",
-            "language": "en",
-            "metadata": {},
-        },
-        timeout=_TIMEOUT,
-    )
-    resp.raise_for_status()
-    data = resp.json()
+def _headers() -> dict:
     return {
-        "booking_id": data.get("id"),
-        "uid": data.get("uid"),
-        "status": data.get("status"),
-        "start": data.get("startTime"),
-        "end": data.get("endTime"),
-        "title": data.get("title"),
+        "Authorization": f"Bearer {settings.calcom_api_key}",
+        "cal-api-version": _API_VERSION,
+        "Content-Type": "application/json",
     }
 
 
-# OpenAI-compatible tool definitions (used by voice_answer.py tool loop)
+def check_availability(date: str) -> dict:
+    """Return available slots for the given date (YYYY-MM-DD)."""
+    resp = requests.get(
+        f"{_BASE}/slots/available",
+        params={
+            "eventTypeId": settings.calcom_event_type_id,
+            "startTime": f"{date}T00:00:00Z",
+            "endTime": f"{date}T23:59:59Z",
+        },
+        headers=_headers(),
+        timeout=_TIMEOUT,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    slots_by_date = data.get("data", {}).get("slots", {})
+    slots = slots_by_date.get(date, [])
+    times = [s["time"] for s in slots]
+    return {"date": date, "slots": times, "count": len(times)}
+
+
+def book_meeting(name: str, email: str, datetime_iso: str, notes: str = "") -> dict:
+    """Book a 30-min intro call. datetime_iso: ISO 8601 UTC e.g. 2026-06-10T10:00:00Z"""
+    body: dict = {
+        "eventTypeId": settings.calcom_event_type_id,
+        "start": datetime_iso,
+        "attendee": {
+            "name": name,
+            "email": email,
+            "timeZone": "UTC",
+            "language": "en",
+        },
+        "metadata": {},
+    }
+    if notes:
+        body["metadata"]["notes"] = notes
+
+    resp = requests.post(
+        f"{_BASE}/bookings",
+        json=body,
+        headers=_headers(),
+        timeout=_TIMEOUT,
+    )
+    resp.raise_for_status()
+    booking = resp.json().get("data", resp.json())
+    return {
+        "booking_id": booking.get("id"),
+        "uid": booking.get("uid"),
+        "status": booking.get("status"),
+        "start": booking.get("start") or booking.get("startTime"),
+        "end": booking.get("end") or booking.get("endTime"),
+        "title": booking.get("title"),
+    }
+
+
 TOOL_SCHEMAS: list[dict] = [
     {
         "type": "function",
@@ -73,14 +79,15 @@ TOOL_SCHEMAS: list[dict] = [
             "name": "check_availability",
             "description": (
                 "Check open meeting slots on Cal.com for a given date. "
-                "Use this before booking so the caller can pick a time."
+                "Always call this before booking so the caller can pick a time. "
+                "Use today's date or a date the caller specifies."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "date": {
                         "type": "string",
-                        "description": "Date to check, YYYY-MM-DD format (UTC).",
+                        "description": "Date in YYYY-MM-DD format (UTC). Use today's date if not specified.",
                     }
                 },
                 "required": ["date"],
@@ -99,11 +106,11 @@ TOOL_SCHEMAS: list[dict] = [
                     "email": {"type": "string", "description": "Caller's email address."},
                     "datetime_iso": {
                         "type": "string",
-                        "description": "ISO 8601 UTC datetime, e.g. 2026-06-10T10:00:00Z",
+                        "description": "ISO 8601 UTC datetime e.g. 2026-06-10T10:00:00Z. Must be a future date.",
                     },
                     "notes": {
                         "type": "string",
-                        "description": "Optional context for the meeting (company, role).",
+                        "description": "Optional context (company, role, topic).",
                     },
                 },
                 "required": ["name", "email", "datetime_iso"],

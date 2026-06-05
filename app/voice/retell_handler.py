@@ -10,7 +10,6 @@ Protocol:
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from functools import lru_cache
@@ -19,9 +18,8 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from openai import AsyncOpenAI
 
 from app.config import settings
-from app.rag.retriever import retrieve
 from app.tools.cal_tools import TOOL_MAP, TOOL_SCHEMAS
-from app.voice.voice_answer import _GREETING, _format_context, _system
+from app.voice.voice_answer import _GREETING, _system
 
 logger = logging.getLogger(__name__)
 
@@ -47,22 +45,12 @@ def _retell_to_openai(transcript: list[dict]) -> list[dict]:
     ]
 
 
-async def _build_messages(turns: list[dict]) -> list[dict]:
-    """Add RAG context to the last user turn. Runs retrieval in a thread pool."""
-    last_user = next((t["content"] for t in reversed(turns) if t["role"] == "user"), "")
-
-    # Retrieve in thread pool so the event loop stays free
-    loop = asyncio.get_running_loop()
-    chunks = await loop.run_in_executor(None, retrieve, last_user) if last_user else []
-    context = _format_context(chunks)
-
+def _build_messages(turns: list[dict]) -> list[dict]:
+    """Build messages for the LLM. Bio is in the system prompt so no RAG needed for voice."""
     messages: list[dict] = [{"role": "system", "content": _system()}]
     for i, turn in enumerate(turns):
         if turn["role"] == "user" and i == len(turns) - 1:
-            messages.append({
-                "role": "user",
-                "content": f"CONTEXT:\n{context}\n\n---\nCaller: {turn['content']}",
-            })
+            messages.append({"role": "user", "content": f"Caller: {turn['content']}"})
         else:
             messages.append(turn)
     return messages
@@ -189,7 +177,7 @@ async def retell_websocket(websocket: WebSocket, call_id: str) -> None:
                 await _send_chunk(websocket, response_id, _GREETING, True)
                 continue
 
-            messages = await _build_messages(turns)
+            messages = _build_messages(turns)
             await _stream_reply(messages, response_id, websocket)
 
     except WebSocketDisconnect:
