@@ -1,0 +1,25 @@
+# secrets
+.env
+*.env
+!.env.example
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# data / artifacts
+data/resume.pdf
+data/resume.txt
+data/*.json
+*.log
+
+# os / editor
+.DS_Store
+.vscode/
+.idea/
+.claude/
+first/
