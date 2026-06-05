@@ -20,13 +20,13 @@ def _headers() -> dict:
 
 def check_availability(date: str) -> dict:
     """Return available slots for the given date (YYYY-MM-DD)."""
+    cal_link = f"{settings.calcom_username}/{settings.calcom_event_slug}"
     resp = requests.get(
         f"{_BASE}/slots/available",
         params={
             "startTime": f"{date}T00:00:00.000Z",
             "endTime": f"{date}T23:59:59.999Z",
-            "username": settings.calcom_username,
-            "eventSlug": settings.calcom_event_slug,
+            "calLink": cal_link,
         },
         headers=_headers(),
         timeout=_TIMEOUT,
@@ -34,7 +34,6 @@ def check_availability(date: str) -> dict:
     resp.raise_for_status()
     data = resp.json()
     slots_by_date = data.get("data", {}).get("slots", {})
-    # slots dict keys may include timezone suffix; find the matching date
     times = []
     for key, slot_list in slots_by_date.items():
         if key.startswith(date):

@@ -25,7 +25,20 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["voice"])
 
-_CHUNK_WORDS = 4  # words per packet — lower = faster perceived response
+_CHUNK_WORDS = 4
+
+_END_PHRASES = {
+    "bye", "goodbye", "good bye", "end the call", "end call",
+    "hang up", "gotta go", "talk later", "take care", "see you",
+    "that's all", "thats all", "i'm done", "im done",
+}
+
+_FAREWELL = "Goodbye! It was great talking with you. Have a wonderful day!"
+
+
+def _wants_to_end(turns: list[dict]) -> bool:
+    last = next((t["content"].lower() for t in reversed(turns) if t["role"] == "user"), "")
+    return any(phrase in last for phrase in _END_PHRASES)
 
 
 @lru_cache(maxsize=1)
@@ -56,12 +69,12 @@ def _build_messages(turns: list[dict]) -> list[dict]:
     return messages
 
 
-async def _send_chunk(ws: WebSocket, response_id: int, text: str, complete: bool) -> None:
+async def _send_chunk(ws: WebSocket, response_id: int, text: str, complete: bool, end_call: bool = False) -> None:
     await ws.send_json({
         "response_id": response_id,
         "content": text,
         "content_complete": complete,
-        "end_call": False,
+        "end_call": end_call,
     })
 
 
@@ -175,6 +188,11 @@ async def retell_websocket(websocket: WebSocket, call_id: str) -> None:
             # Empty transcript = call just started → greet immediately
             if not any(t["role"] == "user" for t in turns):
                 await _send_chunk(websocket, response_id, _GREETING, True)
+                continue
+
+            # End call if user said bye / goodbye
+            if _wants_to_end(turns):
+                await _send_chunk(websocket, response_id, _FAREWELL, True, end_call=True)
                 continue
 
             messages = _build_messages(turns)
