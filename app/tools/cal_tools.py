@@ -1,9 +1,13 @@
 """Cal.com v2 tools: check availability and book a meeting."""
 from __future__ import annotations
 
+import logging
+
 import requests
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 _BASE = "https://api.cal.com/v2"
 _TIMEOUT = 10
@@ -20,17 +24,17 @@ def _headers() -> dict:
 
 def check_availability(date: str) -> dict:
     """Return available slots for the given date (YYYY-MM-DD)."""
+    # Build URL as a plain string — using params= would encode '/' as '%2F' which Cal.com rejects
     cal_link = f"{settings.calcom_username}/{settings.calcom_event_slug}"
-    resp = requests.get(
-        f"{_BASE}/slots/available",
-        params={
-            "startTime": f"{date}T00:00:00.000Z",
-            "endTime": f"{date}T23:59:59.999Z",
-            "calLink": cal_link,
-        },
-        headers=_headers(),
-        timeout=_TIMEOUT,
+    url = (
+        f"{_BASE}/slots/available"
+        f"?calLink={cal_link}"
+        f"&startTime={date}T00:00:00.000Z"
+        f"&endTime={date}T23:59:59.999Z"
     )
+    resp = requests.get(url, headers=_headers(), timeout=_TIMEOUT)
+    if not resp.ok:
+        logger.warning("Cal.com slots → %s %s: %s", resp.status_code, url, resp.text[:300])
     resp.raise_for_status()
     data = resp.json()
     slots_by_date = data.get("data", {}).get("slots", {})
