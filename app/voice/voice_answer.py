@@ -97,8 +97,8 @@ def _format_context(chunks) -> str:
 @lru_cache(maxsize=1)
 def _client() -> OpenAI:
     return OpenAI(
-        base_url=settings.groq_base_url,
-        api_key=settings.groq_api_key,
+        base_url=settings.github_models_base_url,
+        api_key=settings.github_token,
     )
 
 

@@ -25,13 +25,13 @@ class Settings(BaseSettings):
     embed_model: str = "text-embedding-3-large"
     embed_dim: int = 1024
 
-    # ── Groq — live LLM for chat + voice ─────────────────────────────────────
-    # Free tier: 14,400 req/day, ~100ms TTFF — much better than GitHub Models
-    # Get key: console.groq.com → API Keys
+    # LLM models (GitHub Models free tier)
+    chat_model: str = "gpt-4o"
+    voice_model: str = "gpt-4o-mini"
+
+    # Groq (optional alternative — faster, higher rate limit)
     groq_api_key: str = ""
     groq_base_url: str = "https://api.groq.com/openai/v1"
-    chat_model: str = "llama-3.3-70b-versatile"   # best quality on Groq free tier
-    voice_model: str = "llama-3.1-8b-instant"      # lowest latency for voice
 
     # Vector store
     database_url: str = ""
