@@ -51,12 +51,20 @@ def _format_context(chunks) -> str:
     return "\n".join(parts) if parts else "(no context retrieved)"
 
 
+_GREETING = (
+    "Hi, I'm Bhuvanesh's AI assistant — happy to answer questions about his "
+    "background, projects, or skills. What would you like to know?"
+)
+
+
 def voice_respond(transcript: list[dict]) -> str:
-    """Accept Anthropic-format transcript, return the spoken reply text."""
+    """Accept OpenAI-format transcript, return the spoken reply text."""
     last_user = next(
         (t["content"] for t in reversed(transcript) if t["role"] == "user"), ""
     )
-    chunks = retrieve(last_user) if last_user else []
+    if not last_user:
+        return _GREETING
+    chunks = retrieve(last_user)
     context = _format_context(chunks)
 
     messages: list[dict] = [{"role": "system", "content": _system()}]
