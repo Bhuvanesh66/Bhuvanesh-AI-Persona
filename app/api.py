@@ -46,6 +46,57 @@ def health() -> dict:
     return {"status": "ok", "persona": settings.persona_name, "model": settings.chat_model}
 
 
+@app.get("/debug")
+def debug() -> dict:
+    """Diagnose configuration issues. Safe to expose — no secrets returned."""
+    import traceback
+
+    results: dict = {
+        "groq_key_set": bool(settings.groq_api_key),
+        "use_groq": settings.use_groq,
+        "chat_model": settings.chat_model,
+        "voice_model": settings.voice_model,
+        "github_token_set": bool(settings.github_token),
+        "database_url_set": bool(settings.database_url),
+        "calcom_key_set": bool(settings.calcom_api_key),
+    }
+
+    # Test Groq connectivity
+    try:
+        from openai import OpenAI
+        c = OpenAI(base_url=settings.groq_base_url, api_key=settings.groq_api_key)
+        r = c.chat.completions.create(
+            model=settings.chat_model,
+            messages=[{"role": "user", "content": "say ok"}],
+            max_tokens=5,
+        )
+        results["groq_llm"] = "ok"
+        results["groq_response"] = r.choices[0].message.content
+    except Exception as exc:
+        results["groq_llm"] = f"FAIL: {exc}"
+
+    # Test DB connectivity
+    try:
+        from app import db
+        conn = db.connect()
+        count = conn.execute("SELECT count(*) FROM chunks;").fetchone()[0]
+        conn.close()
+        results["db"] = "ok"
+        results["chunk_count"] = count
+    except Exception as exc:
+        results["db"] = f"FAIL: {exc}"
+
+    # Test embeddings
+    try:
+        from app.embeddings import embed_query
+        vec = embed_query("test")
+        results["embeddings"] = f"ok (dim={len(vec)})"
+    except Exception as exc:
+        results["embeddings"] = f"FAIL: {exc}"
+
+    return results
+
+
 @app.post("/chat")
 def chat(req: ChatRequest) -> dict:
     return answer(req.message, req.history)
@@ -53,6 +104,9 @@ def chat(req: ChatRequest) -> dict:
 
 @app.post("/chat/stream")
 def chat_stream(req: ChatRequest) -> StreamingResponse:
+    import logging
+    _log = logging.getLogger(__name__)
+
     def gen():
         try:
             for item in answer_stream(req.message, req.history):
@@ -61,9 +115,17 @@ def chat_stream(req: ChatRequest) -> StreamingResponse:
                 else:
                     yield f"data: {json.dumps({'delta': item})}\n\n"
         except Exception as exc:
-            import logging
-            logging.getLogger(__name__).error("chat_stream error: %s", exc)
-            msg = "I'm having trouble connecting right now. Please try again in a moment."
+            _log.error("chat_stream error: %s", exc, exc_info=True)
+            # Surface a useful message — not a wall of silence
+            err = str(exc)
+            if "api_key" in err.lower() or "authentication" in err.lower() or "401" in err:
+                msg = "Authentication error — please check the API key configuration on the server."
+            elif "rate" in err.lower() or "429" in err:
+                msg = "Rate limit hit — please wait a moment and try again."
+            elif "connect" in err.lower() or "timeout" in err.lower():
+                msg = "Server is warming up — please try again in a few seconds."
+            else:
+                msg = f"Something went wrong on the server. Please try again. (Detail: {exc.__class__.__name__})"
             yield f"data: {json.dumps({'delta': msg})}\n\n"
         yield "event: done\ndata: {}\n\n"
 

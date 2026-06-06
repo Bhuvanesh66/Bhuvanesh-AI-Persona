@@ -145,6 +145,8 @@ def answer(question: str, history: list[dict] | None = None) -> dict:
 def answer_stream(question: str, history: list[dict] | None = None):
     """Yield text deltas; final item is a dict with sources.
     Handles tool calls (check_availability, book_meeting) mid-stream.
+    Retrieval failures are silently swallowed (BIO-only fallback).
+    LLM failures propagate so api.py can surface a useful error message.
     """
     chunks = _safe_retrieve(question)
     messages = _build_messages(question, chunks, history)
