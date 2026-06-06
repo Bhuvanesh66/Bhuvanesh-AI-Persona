@@ -91,6 +91,11 @@ async def _send_chunk(ws: WebSocket, response_id: int, text: str, complete: bool
 async def _stream_reply(messages: list[dict], response_id: int, ws: WebSocket) -> None:
     """Stream LLM tokens to Retell as they arrive. Handles tool calls too."""
     client = _client()
+    # Log prompt being sent (truncated) for debugging prompt-injection issues
+    try:
+        logger.info("Streaming prompt to model: %s", json.dumps(messages)[:3000])
+    except Exception:
+        logger.info("Streaming prompt to model: (unserializable)")
     stream = await client.chat.completions.create(
         model=settings.voice_model,
         max_tokens=256,
