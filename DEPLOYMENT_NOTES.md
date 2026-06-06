@@ -6,28 +6,26 @@ This project uses a Python FastAPI backend for the chat agent and a separate Nex
 
 The frontend should point to a live backend via `NEXT_PUBLIC_API_URL`.
 
+### GitHub Models only
+
+The backend uses **GitHub Models exclusively** with your GitHub token.
+
 ### Important environment variables for the backend
 
-- `GROQ_API_KEY`: only required if you want to use Groq.
-- `ENABLE_GROQ=false`: default, so the backend uses GitHub models only.
-- `CHAT_MODEL`: should use a supported GitHub model when in GitHub-only mode.
-- `VOICE_MODEL`: should use a supported GitHub voice model when in GitHub-only mode.
-
-### Supported defaults
-
-If your deployed backend still has deprecated model names, the code now remaps them automatically:
-
-- `llama3-groq-70b-8192-tool-use-preview` → `llama-3.3-70b-versatile`
-- `llama3-groq-8b-8192-tool-use-preview` → `llama-3.1-8b-instant`
+- `GITHUB_TOKEN`: required — uses your GitHub token with `Models: Read` permission.
+- `CHAT_MODEL`: defaults to `gpt-4o-mini`.
+- `VOICE_MODEL`: defaults to `gpt-4o-mini`.
 
 ### Recommended configuration
 
 Use these exact values in the deployed backend `.env` or environment settings:
 
 ```env
-GROQ_API_KEY=your_groq_api_key
-CHAT_MODEL=llama-3.3-70b-versatile
-VOICE_MODEL=llama-3.1-8b-instant
+GITHUB_TOKEN=ghp_xxxxx_your_token
+CHAT_MODEL=gpt-4o-mini
+VOICE_MODEL=gpt-4o-mini
+EMBEDDING_PROVIDER=github
+EMBED_MODEL=text-embedding-3-large
 ```
 
 ### Verify the backend

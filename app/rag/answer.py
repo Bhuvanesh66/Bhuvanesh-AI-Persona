@@ -22,11 +22,6 @@ logger = logging.getLogger(__name__)
 
 @lru_cache(maxsize=1)
 def _client() -> OpenAI:
-    if settings.use_groq:
-        return OpenAI(
-            base_url=settings.groq_base_url,
-            api_key=settings.groq_api_key,
-        )
     return OpenAI(
         base_url=settings.github_models_base_url,
         api_key=settings.github_token,
@@ -112,7 +107,7 @@ def answer(question: str, history: list[dict] | None = None) -> dict:
 
     while True:
         resp = _client().chat.completions.create(
-            model=settings.effective_chat_model,
+            model=settings.chat_model,
             max_tokens=1024,
             messages=messages,
             tools=TOOL_SCHEMAS,
@@ -152,7 +147,7 @@ def answer_stream(question: str, history: list[dict] | None = None):
     messages = _build_messages(question, chunks, history)
 
     stream = _client().chat.completions.create(
-        model=settings.effective_chat_model,
+        model=settings.chat_model,
         max_tokens=1024,
         messages=messages,
         tools=TOOL_SCHEMAS,
@@ -214,7 +209,7 @@ def answer_stream(question: str, history: list[dict] | None = None):
             *result_msgs,
         ]
         final = _client().chat.completions.create(
-            model=settings.effective_chat_model,
+            model=settings.chat_model,
             max_tokens=1024,
             messages=follow_up,
             stream=True,

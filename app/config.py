@@ -4,11 +4,6 @@ from __future__ import annotations
 from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEPRECATED_MODEL_MAP = {
-    "llama3-groq-70b-8192-tool-use-preview": "llama-3.3-70b-versatile",
-    "llama3-groq-8b-8192-tool-use-preview": "llama-3.1-8b-instant",
-}
-
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -31,14 +26,9 @@ class Settings(BaseSettings):
     embed_model: str = "text-embedding-3-large"
     embed_dim: int = 1024
 
-    # LLM models — supports tool calling reliably
-    chat_model: str = "llama-3.3-70b-versatile"
-    voice_model: str = "llama-3.1-8b-instant"
-
-    # Groq — primary LLM backend (faster, higher rate limit)
-    groq_api_key: str = ""
-    groq_base_url: str = "https://api.groq.com/openai/v1"
-    enable_groq: bool = False
+    # LLM models — GitHub Models (gpt-4o-mini)
+    chat_model: str = "gpt-4o-mini"
+    voice_model: str = "gpt-4o-mini"
 
     # Vector store
     database_url: str = ""
@@ -55,21 +45,6 @@ class Settings(BaseSettings):
     # Retrieval knobs
     retrieve_k: int = 6
     candidate_k: int = 20
-
-    @computed_field
-    @property
-    def use_groq(self) -> bool:
-        return bool(self.groq_api_key) and self.enable_groq
-
-    @computed_field
-    @property
-    def effective_chat_model(self) -> str:
-        return DEPRECATED_MODEL_MAP.get(self.chat_model, self.chat_model)
-
-    @computed_field
-    @property
-    def effective_voice_model(self) -> str:
-        return DEPRECATED_MODEL_MAP.get(self.voice_model, self.voice_model)
 
 
 settings = Settings()

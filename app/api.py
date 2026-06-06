@@ -46,7 +46,7 @@ def health() -> dict:
     return {
         "status": "ok",
         "persona": settings.persona_name,
-        "model": settings.effective_chat_model,
+        "model": settings.chat_model,
     }
 
 
@@ -56,30 +56,26 @@ def debug() -> dict:
     import traceback
 
     results: dict = {
-        "groq_key_set": bool(settings.groq_api_key),
-        "use_groq": settings.use_groq,
-        "chat_model": settings.chat_model,
-        "effective_chat_model": settings.effective_chat_model,
-        "voice_model": settings.voice_model,
-        "effective_voice_model": settings.effective_voice_model,
         "github_token_set": bool(settings.github_token),
+        "chat_model": settings.chat_model,
+        "voice_model": settings.voice_model,
         "database_url_set": bool(settings.database_url),
         "calcom_key_set": bool(settings.calcom_api_key),
     }
 
-    # Test Groq connectivity
+    # Test GitHub Models connectivity
     try:
         from openai import OpenAI
-        c = OpenAI(base_url=settings.groq_base_url, api_key=settings.groq_api_key)
+        c = OpenAI(base_url=settings.github_models_base_url, api_key=settings.github_token)
         r = c.chat.completions.create(
-            model=settings.effective_chat_model,
+            model=settings.chat_model,
             messages=[{"role": "user", "content": "say ok"}],
             max_tokens=5,
         )
-        results["groq_llm"] = "ok"
-        results["groq_response"] = r.choices[0].message.content
+        results["github_models_llm"] = "ok"
+        results["github_models_response"] = r.choices[0].message.content
     except Exception as exc:
-        results["groq_llm"] = f"FAIL: {exc}"
+        results["github_models_llm"] = f"FAIL: {exc}"
 
     # Test DB connectivity
     try:

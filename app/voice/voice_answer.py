@@ -175,11 +175,6 @@ def _format_context(chunks) -> str:
 
 @lru_cache(maxsize=1)
 def _client() -> OpenAI:
-    if settings.use_groq:
-        return OpenAI(
-            base_url=settings.groq_base_url,
-            api_key=settings.groq_api_key,
-        )
     return OpenAI(
         base_url=settings.github_models_base_url,
         api_key=settings.github_token,
@@ -209,7 +204,7 @@ def voice_respond(transcript: list[dict]) -> str:
 
     while True:
         resp = _client().chat.completions.create(
-            model=settings.effective_voice_model,
+            model=settings.voice_model,
             max_tokens=256,
             messages=messages,
             tools=TOOL_SCHEMAS,
