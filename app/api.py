@@ -66,7 +66,7 @@ def debug() -> dict:
         from openai import OpenAI
         c = OpenAI(base_url=settings.groq_base_url, api_key=settings.groq_api_key)
         r = c.chat.completions.create(
-            model=settings.chat_model,
+            model=settings.effective_chat_model,
             messages=[{"role": "user", "content": "say ok"}],
             max_tokens=5,
         )

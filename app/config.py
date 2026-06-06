@@ -4,6 +4,11 @@ from __future__ import annotations
 from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEPRECATED_MODEL_MAP = {
+    "llama3-groq-70b-8192-tool-use-preview": "llama-3.3-70b-versatile",
+    "llama3-groq-8b-8192-tool-use-preview": "llama-3.1-8b-instant",
+}
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -54,6 +59,16 @@ class Settings(BaseSettings):
     @property
     def use_groq(self) -> bool:
         return bool(self.groq_api_key)
+
+    @computed_field
+    @property
+    def effective_chat_model(self) -> str:
+        return DEPRECATED_MODEL_MAP.get(self.chat_model, self.chat_model)
+
+    @computed_field
+    @property
+    def effective_voice_model(self) -> str:
+        return DEPRECATED_MODEL_MAP.get(self.voice_model, self.voice_model)
 
 
 settings = Settings()

@@ -209,7 +209,7 @@ def voice_respond(transcript: list[dict]) -> str:
 
     while True:
         resp = _client().chat.completions.create(
-            model=settings.voice_model,
+            model=settings.effective_voice_model,
             max_tokens=256,
             messages=messages,
             tools=TOOL_SCHEMAS,

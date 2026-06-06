@@ -112,7 +112,7 @@ def answer(question: str, history: list[dict] | None = None) -> dict:
 
     while True:
         resp = _client().chat.completions.create(
-            model=settings.chat_model,
+            model=settings.effective_chat_model,
             max_tokens=1024,
             messages=messages,
             tools=TOOL_SCHEMAS,
@@ -152,7 +152,7 @@ def answer_stream(question: str, history: list[dict] | None = None):
     messages = _build_messages(question, chunks, history)
 
     stream = _client().chat.completions.create(
-        model=settings.chat_model,
+        model=settings.effective_chat_model,
         max_tokens=1024,
         messages=messages,
         tools=TOOL_SCHEMAS,
@@ -214,7 +214,7 @@ def answer_stream(question: str, history: list[dict] | None = None):
             *result_msgs,
         ]
         final = _client().chat.completions.create(
-            model=settings.chat_model,
+            model=settings.effective_chat_model,
             max_tokens=1024,
             messages=follow_up,
             stream=True,

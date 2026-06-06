@@ -87,7 +87,7 @@ async def _stream_reply(messages: list[dict], response_id: int, ws: WebSocket) -
     """Stream LLM tokens to Retell as they arrive. Handles tool calls too."""
     client = _client()
     stream = await client.chat.completions.create(
-        model=settings.voice_model,
+        model=settings.effective_voice_model,
         max_tokens=256,
         messages=messages,
         tools=TOOL_SCHEMAS,
@@ -161,7 +161,7 @@ async def _stream_reply(messages: list[dict], response_id: int, ws: WebSocket) -
             *result_msgs,
         ]
         final = await client.chat.completions.create(
-            model=settings.voice_model,
+            model=settings.effective_voice_model,
             max_tokens=256,
             messages=follow_up,
         )
