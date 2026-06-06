@@ -18,33 +18,58 @@ from app.tools.cal_tools import TOOL_MAP, TOOL_SCHEMAS
 # ── Hardcoded bio (always available, no retrieval needed) ─────────────────────
 BIO = """\
 Name: Bhuvanesh M S (he/him) | Location: Bengaluru, Karnataka, India
+Phone: +91 9345656705 | Email: bhuvaneshms60@gmail.com
 LinkedIn: https://www.linkedin.com/in/bhuvaneshms/ | GitHub: https://github.com/Bhuvanesh66
+LeetCode: https://leetcode.com/u/Bhuvanesh--MS/ | Codeforces: bhuvaneshms60 | CodeChef: family_glee_96
 
 EDUCATION:
 - Scaler School of Technology — Integrated BSc + MS, Computer Science (Aug 2024 – Aug 2028), CGR 9.47/10
 - BITS Pilani — BSc Computer Science (Aug 2024 – Aug 2027), CGPA 9.1/10
-- 12th grade: 94.75% | 10th grade: 97.4%
+- Class 12 (ISC): 94.75% — District Topper | Class 10 (ICSE): 97.4% — District Topper
 
 EXPERIENCE:
-- Buddy (Revamped Teaching Assistant) at Scaler School of Technology, Aug 2025 – present (part-time)
-  Mentoring 23 junior students in DSA, programming, and projects; running doubt-solving sessions
+- Buddy (Teaching Assistant) at Scaler School of Technology, Aug 2025 – present
+  Mentoring 23 junior students in DSA, programming, Java/Spring Boot, and full-stack projects
 - Crew Member, NlogN — The CP Club at SST, Aug 2025 – present
   Competitive programming club; CodeChef max rating 1481
 
+OPEN SOURCE:
+- MCP Gateway: Merged PR #942 — fixed HTTPS hairpin routing bug, released to production
+- Security Advisory GHSA-g53w-w6mj-hrpp (Critical): discovered & patched authority injection vulnerability in v0.7.0
+
 TECH SKILLS:
-Languages: Python, TypeScript, JavaScript, Java, Go, C++
-Backend: FastAPI, Spring Boot, Node.js, Express.js, WebSockets, JWT
-Databases: PostgreSQL, MongoDB, Redis
-AI/ML: OpenAI SDK, LangChain, Scikit-learn, RAG pipelines
-DevOps: Docker, Kubernetes, GitHub Actions, AWS
+Languages: Python, Java, C++, JavaScript, TypeScript, Go
+Backend: FastAPI, Spring Boot, Node.js, Express.js, REST APIs, WebSockets, JWT, gRPC
+Frontend: React, Next.js, Tailwind CSS
+Databases: PostgreSQL, MongoDB, Redis, SQL
+AI/ML: Generative AI, OpenAI APIs, RAG pipelines, LangChain, Embeddings, Vector Databases, Scikit-learn, XGBoost
+DevOps: Docker, Kubernetes, Istio, GitHub Actions, AWS basics
+CS Fundamentals: DSA, OOP, Low-Level Design, OS, DBMS
 
 PROJECTS:
-- BroCab: ride-sharing app built with MERN stack
-- PicPrompt: AI-powered image generation app
-- RAG-chatbot: CRAG pipeline using FAISS vector store, cross-encoder reranking, LangChain
-- Credit Card Fraud Detection: XGBoost model, F1 score 0.91
+- Personal RAG Chatbot: CRAG pipeline with FAISS vector store, semantic search, embeddings, LangChain, FastAPI
+- PicPrompt: AI text-to-image generator — React + Node.js + MongoDB + JWT + Generative AI APIs
+- BroCab: Student ride-sharing platform — React, backend APIs, authentication, ride management
+- Credit Card Fraud Detection: XGBoost model on imbalanced data — F1: 0.91, ROC-AUC: 0.999
 
-GOALS: Seeking Backend Developer Intern roles; open to full-stack and AI/LLM collaboration\
+COMPETITIVE PROGRAMMING:
+- LeetCode: 138+ problems solved (68E/65M/5H), contest rating 1529, top 36.57% globally
+- CodeChef: 2★, rating 1476 (max 1481), 33 contests, 103+ problems solved
+- Codeforces: rating 1024 (max 1092), 124+ problems solved
+
+ACHIEVEMENTS:
+- District Topper — Class 10 ICSE and Class 12 ISC board exams
+- CGR 9.47 at Scaler + CGPA 9.1 at BITS simultaneously
+- Merged open-source PR and disclosed critical security vulnerability
+- Mentored 23 students as Teaching Assistant
+
+TARGET ROLES: AI Engineer Intern, Backend Developer Intern, Software Engineer Intern
+DOMAINS: Generative AI, Agentic AI, Developer Tools, SaaS, Distributed Systems, Infrastructure
+COMPANIES: AI startups, YC startups, product companies, developer tool companies
+
+SUMMARY: Fast learner, strong ownership mindset, works well under pressure. Combines rigorous academic
+foundations (BITS) with hands-on industry-focused engineering (Scaler). Passionate about backend systems,
+AI applications, and building products that scale.\
 """
 
 _GREETING = (
