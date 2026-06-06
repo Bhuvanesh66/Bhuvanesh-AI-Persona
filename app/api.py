@@ -22,9 +22,12 @@ from app.voice.retell_handler import router as voice_router
 
 app = FastAPI(title=f"{settings.persona_name} — AI Persona")
 
+import os as _os
+_ALLOWED_ORIGINS = [o.strip() for o in _os.environ.get("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # tighten to Vercel URL before submitting
+    allow_origins=_ALLOWED_ORIGINS,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

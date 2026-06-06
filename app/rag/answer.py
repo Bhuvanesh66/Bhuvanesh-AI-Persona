@@ -22,6 +22,11 @@ logger = logging.getLogger(__name__)
 
 @lru_cache(maxsize=1)
 def _client() -> OpenAI:
+    if settings.use_groq:
+        return OpenAI(
+            base_url=settings.groq_base_url,
+            api_key=settings.groq_api_key,
+        )
     return OpenAI(
         base_url=settings.github_models_base_url,
         api_key=settings.github_token,

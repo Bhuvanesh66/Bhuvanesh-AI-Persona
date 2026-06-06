@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, KeyboardEvent } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -300,29 +302,40 @@ function MessageBubble({ msg }: { msg: Message }) {
       >
         {/* bubble */}
         <div
-          className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap min-h-[44px] ${
+          className={`rounded-2xl px-4 py-3 text-sm leading-relaxed min-h-[44px] ${
             isUser
-              ? 'bg-indigo-600 text-white rounded-br-sm'
+              ? 'bg-indigo-600 text-white rounded-br-sm whitespace-pre-wrap'
               : 'bg-white text-gray-800 border border-gray-100 shadow-sm rounded-bl-sm'
           }`}
         >
-          {msg.content}
+          {isUser ? (
+            msg.content
+          ) : (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-0.5">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-0.5">{children}</ol>,
+                li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                code: ({ children }) => <code className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
+                pre: ({ children }) => <pre className="bg-gray-100 p-2 rounded text-xs overflow-x-auto mb-2">{children}</pre>,
+                h1: ({ children }) => <h1 className="font-bold text-base mb-1">{children}</h1>,
+                h2: ({ children }) => <h2 className="font-bold text-sm mb-1">{children}</h2>,
+                h3: ({ children }) => <h3 className="font-semibold text-sm mb-1">{children}</h3>,
+              }}
+            >
+              {msg.content}
+            </ReactMarkdown>
+          )}
 
           {/* typing dots when waiting for first token */}
           {msg.streaming && !msg.content && (
             <span className="inline-flex items-center gap-1 h-4">
-              <span
-                className="w-2 h-2 bg-gray-300 rounded-full animate-bounce"
-                style={{ animationDelay: '0ms' }}
-              />
-              <span
-                className="w-2 h-2 bg-gray-300 rounded-full animate-bounce"
-                style={{ animationDelay: '160ms' }}
-              />
-              <span
-                className="w-2 h-2 bg-gray-300 rounded-full animate-bounce"
-                style={{ animationDelay: '320ms' }}
-              />
+              <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '160ms' }} />
+              <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '320ms' }} />
             </span>
           )}
 
