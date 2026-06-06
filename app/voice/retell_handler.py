@@ -1,7 +1,7 @@
 """Retell AI Custom LLM server — async WebSocket with real-time streaming.
 
 Words are sent to Retell as tokens arrive from the LLM, so the caller
-hears the first word in ~2s instead of waiting for the full response.
+hears the first word sooner instead of waiting for the full response.
 
 Protocol:
   Retell → wss://your-domain/llm-websocket/{call_id}
@@ -25,8 +25,6 @@ from app.voice.voice_answer import _GREETING, _system, _format_context
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["voice"])
-
-_CHUNK_WORDS = 4
 
 _END_PHRASES = {
     "bye", "goodbye", "good bye", "end the call", "end call",
@@ -117,14 +115,8 @@ async def _stream_reply(messages: list[dict], response_id: int, ws: WebSocket) -
 
         # ── Stream text tokens ────────────────────────────────────────────────
         if delta.content:
-            buffer += delta.content
-            words = buffer.split(" ")
-            # Send complete word groups; keep the last (possibly incomplete) word
-            while len(words) > _CHUNK_WORDS:
-                packet = " ".join(words[:_CHUNK_WORDS]) + " "
-                buffer = " ".join(words[_CHUNK_WORDS:])
-                words = buffer.split(" ")
-                await _send_chunk(ws, response_id, packet, False)
+            # Send each text delta immediately to minimize latency.
+            await _send_chunk(ws, response_id, delta.content, False)
 
         # ── Accumulate tool call fragments ────────────────────────────────────
         if delta.tool_calls:
