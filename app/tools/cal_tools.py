@@ -18,9 +18,9 @@ _TIMEOUT = 10
 _SLOTS_API_VERSION = "2024-09-04"
 _BOOKINGS_API_VERSION = "2026-02-25"
 
-# Availability window: 9 AM to 5 PM daily
+# Availability window: 9 AM to 11 PM daily
 _HOUR_START = 9
-_HOUR_END = 17  # 5 PM in 24-hour format
+_HOUR_END = 23  # 11 PM in 24-hour format
 
 
 def _slots_headers() -> dict:
