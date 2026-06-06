@@ -41,7 +41,7 @@ class ChatRequest(BaseModel):
     history: list[dict] | None = None
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health() -> dict:
     return {"status": "ok", "persona": settings.persona_name, "model": settings.chat_model}
 

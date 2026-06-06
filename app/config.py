@@ -26,9 +26,9 @@ class Settings(BaseSettings):
     embed_model: str = "text-embedding-3-large"
     embed_dim: int = 1024
 
-    # LLM models (Groq model names by default)
-    chat_model: str = "llama-3.3-70b-versatile"
-    voice_model: str = "llama-3.1-8b-instant"
+    # LLM models — use Groq tool-use models for reliable function calling
+    chat_model: str = "llama3-groq-70b-8192-tool-use-preview"
+    voice_model: str = "llama3-groq-8b-8192-tool-use-preview"
 
     # Groq — primary LLM backend (faster, higher rate limit)
     groq_api_key: str = ""
