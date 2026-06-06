@@ -49,11 +49,45 @@ const WELCOME: Message = {
 }
 
 const SUGGESTIONS = [
-  'What are your technical skills?',
-  'Tell me about your projects',
-  "What's your educational background?",
-  'Are you open to internship opportunities?',
+  { label: 'Technical Skills', prompt: 'What are your technical skills?' },
+  { label: 'Projects', prompt: 'Tell me about your projects' },
+  { label: 'Education', prompt: "What's your educational background?" },
+  { label: 'Open to Work?', prompt: 'Are you open to internship opportunities?' },
 ]
+
+// ── icon components ───────────────────────────────────────────────────────────
+
+function SendIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 2L11 13" />
+      <path d="M22 2L15 22 11 13 2 9l20-7z" />
+    </svg>
+  )
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  )
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+      className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  )
+}
 
 // ── main component ────────────────────────────────────────────────────────────
 
@@ -64,11 +98,19 @@ export default function ChatInterface() {
   const [showSuggestions, setShowSuggestions] = useState(true)
   const nextId = useRef(1)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+  }, [input])
 
   function buildHistory() {
     return messages
@@ -161,34 +203,39 @@ export default function ChatInterface() {
     }
   }
 
-  function onKey(e: KeyboardEvent<HTMLInputElement>) {
+  function onKey(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       send()
     }
   }
 
+  const hasContent = input.trim().length > 0
+
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-slate-50">
       {/* ── header ── */}
-      <header
-        className="relative flex items-center gap-4 px-5 py-4 shadow-sm"
-        style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}
-      >
-        {/* avatar */}
-        <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white font-bold text-base flex-shrink-0 ring-2 ring-white/30">
+      <header className="relative z-10 flex items-center gap-3.5 px-5 py-3.5 bg-white border-b border-slate-100 shadow-[0_1px_12px_rgba(0,0,0,0.06)]">
+        {/* gradient avatar */}
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}
+        >
           BM
         </div>
 
-        {/* name + title */}
+        {/* name + status */}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-white text-base leading-tight">Bhuvanesh M S</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-            <p className="text-xs text-indigo-200 truncate">
-              AI Engineer · Scaler School of Technology · BITS Pilani
-            </p>
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-slate-800 text-sm leading-tight">Bhuvanesh M S</p>
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              AI Active
+            </span>
           </div>
+          <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+            AI Engineer · Scaler + BITS Pilani
+          </p>
         </div>
 
         {/* book a call */}
@@ -197,34 +244,43 @@ export default function ChatInterface() {
             href={CALCOM_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-shrink-0 text-xs font-semibold bg-white text-indigo-700 px-4 py-2 rounded-full
-                       hover:bg-indigo-50 transition-colors shadow-sm"
+            className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold
+                       bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800
+                       text-white px-3.5 py-2 rounded-lg transition-colors shadow-sm"
           >
+            <CalendarIcon />
             Book a Call
           </a>
         )}
       </header>
 
       {/* ── messages ── */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
-          {messages.map((msg) => (
-            <MessageBubble key={msg.id} msg={msg} />
+      <main className="flex-1 overflow-y-auto scrollbar-thin">
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+
+          {messages.map((msg, i) => (
+            <div key={msg.id} className="msg-enter" style={{ animationDelay: `${i === messages.length - 1 ? 0 : 0}ms` }}>
+              <MessageBubble msg={msg} />
+            </div>
           ))}
 
-          {/* suggestion chips — visible until first user message */}
+          {/* suggestion chips */}
           {showSuggestions && !loading && (
-            <div className="flex flex-wrap gap-2 pl-9">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => send(s)}
-                  className="text-xs px-3 py-1.5 rounded-full border border-indigo-200 text-indigo-600
-                             bg-white hover:bg-indigo-50 hover:border-indigo-400 transition-colors shadow-sm"
-                >
-                  {s}
-                </button>
-              ))}
+            <div className="msg-enter">
+              <p className="text-[11px] text-slate-400 mb-2 ml-11">Suggested questions</p>
+              <div className="flex flex-wrap gap-2 ml-11">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s.label}
+                    onClick={() => send(s.prompt)}
+                    className="text-xs px-3 py-1.5 rounded-full border border-indigo-200 text-indigo-600
+                               bg-white hover:bg-indigo-50 hover:border-indigo-400 hover:shadow-sm
+                               transition-all duration-150 font-medium"
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -233,41 +289,51 @@ export default function ChatInterface() {
       </main>
 
       {/* ── input bar ── */}
-      <footer className="bg-white border-t border-gray-200 px-4 py-3">
-        <div className="max-w-2xl mx-auto flex gap-2 items-center">
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={onKey}
-            disabled={loading}
-            placeholder="Ask about Bhuvanesh's skills, projects, or experience…"
-            className="flex-1 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm
-                       outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent
-                       focus:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-          <button
-            onClick={() => send()}
-            disabled={loading || !input.trim()}
-            className="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white
-                       transition-all hover:bg-indigo-700 active:scale-95
-                       disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed
-                       flex-shrink-0 shadow-sm"
+      <footer className="bg-white border-t border-slate-100 px-4 pt-3 pb-4 shadow-[0_-1px_12px_rgba(0,0,0,0.04)]">
+        <div className="max-w-2xl mx-auto">
+          <div className={`flex items-end gap-2 rounded-2xl border bg-slate-50 px-4 py-2.5 transition-all duration-150
+            ${hasContent || loading
+              ? 'border-indigo-300 ring-2 ring-indigo-100 bg-white'
+              : 'border-slate-200 focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100 focus-within:bg-white'
+            }`}
           >
-            {loading ? (
-              <span className="flex items-center gap-1.5">
-                <span className="w-1 h-1 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1 h-1 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1 h-1 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </span>
-            ) : (
-              'Send'
-            )}
-          </button>
+            <textarea
+              ref={inputRef}
+              rows={1}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={onKey}
+              disabled={loading}
+              placeholder="Ask about Bhuvanesh's skills, projects, or experience…"
+              className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400
+                         outline-none resize-none leading-relaxed disabled:opacity-50
+                         disabled:cursor-not-allowed min-h-[24px] max-h-[120px] py-0.5"
+            />
+            <button
+              onClick={() => send()}
+              disabled={loading || !hasContent}
+              className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-xl
+                         transition-all duration-150 mb-0.5
+                         ${hasContent && !loading
+                           ? 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 shadow-sm'
+                           : 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                         }`}
+            >
+              {loading ? (
+                <span className="flex items-center gap-0.5">
+                  <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </span>
+              ) : (
+                <SendIcon />
+              )}
+            </button>
+          </div>
+          <p className="text-center text-[10px] text-slate-300 mt-2">
+            AI-generated · responses may not reflect real-time information · Press Enter to send
+          </p>
         </div>
-        <p className="text-center text-[10px] text-gray-300 mt-2">
-          AI-generated responses · May not reflect real-time information
-        </p>
       </footer>
     </div>
   )
@@ -278,9 +344,9 @@ export default function ChatInterface() {
 function Avatar() {
   return (
     <div
-      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs
-                 font-bold flex-shrink-0 self-end"
-      style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}
+      className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-[10px]
+                 font-bold flex-shrink-0 self-end mb-0.5"
+      style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
     >
       BM
     </div>
@@ -297,73 +363,94 @@ function MessageBubble({ msg }: { msg: Message }) {
     <div className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
       {!isUser && <Avatar />}
 
-      <div
-        className={`max-w-[78%] flex flex-col gap-1 ${isUser ? 'items-end' : 'items-start'}`}
-      >
+      <div className={`max-w-[78%] flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}>
         {/* bubble */}
         <div
-          className={`rounded-2xl px-4 py-3 text-sm leading-relaxed min-h-[44px] ${
+          className={`rounded-2xl px-4 py-3 text-sm leading-relaxed min-h-[40px] ${
             isUser
               ? 'bg-indigo-600 text-white rounded-br-sm whitespace-pre-wrap'
-              : 'bg-white text-gray-800 border border-gray-100 shadow-sm rounded-bl-sm'
+              : 'bg-white text-slate-800 border border-slate-100 shadow-sm rounded-bl-sm'
           }`}
         >
           {isUser ? (
             msg.content
           ) : (
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-0.5">{children}</ul>,
-                ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-0.5">{children}</ol>,
-                li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                code: ({ children }) => <code className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
-                pre: ({ children }) => <pre className="bg-gray-100 p-2 rounded text-xs overflow-x-auto mb-2">{children}</pre>,
-                h1: ({ children }) => <h1 className="font-bold text-base mb-1">{children}</h1>,
-                h2: ({ children }) => <h2 className="font-bold text-sm mb-1">{children}</h2>,
-                h3: ({ children }) => <h3 className="font-semibold text-sm mb-1">{children}</h3>,
-              }}
-            >
-              {msg.content}
-            </ReactMarkdown>
-          )}
+            <>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                  ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-0.5">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-0.5">{children}</ol>,
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                  strong: ({ children }) => <strong className="font-semibold text-slate-900">{children}</strong>,
+                  em: ({ children }) => <em className="italic text-slate-600">{children}</em>,
+                  code: ({ children }) => (
+                    <code className="bg-slate-100 text-indigo-600 px-1.5 py-0.5 rounded-md text-xs font-mono border border-slate-200">
+                      {children}
+                    </code>
+                  ),
+                  pre: ({ children }) => (
+                    <pre className="bg-slate-900 text-slate-100 p-3 rounded-xl text-xs overflow-x-auto mb-2 font-mono leading-relaxed">
+                      {children}
+                    </pre>
+                  ),
+                  h1: ({ children }) => <h1 className="font-bold text-base text-slate-900 mb-1.5 mt-1">{children}</h1>,
+                  h2: ({ children }) => <h2 className="font-semibold text-sm text-slate-900 mb-1.5 mt-1">{children}</h2>,
+                  h3: ({ children }) => <h3 className="font-semibold text-sm text-slate-700 mb-1 mt-1">{children}</h3>,
+                  blockquote: ({ children }) => (
+                    <blockquote className="border-l-2 border-indigo-300 pl-3 my-2 text-slate-500 italic text-sm">
+                      {children}
+                    </blockquote>
+                  ),
+                  a: ({ href, children }) => (
+                    <a href={href} target="_blank" rel="noopener noreferrer"
+                       className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2">
+                      {children}
+                    </a>
+                  ),
+                  hr: () => <hr className="border-slate-100 my-2" />,
+                }}
+              >
+                {msg.content}
+              </ReactMarkdown>
 
-          {/* typing dots when waiting for first token */}
-          {msg.streaming && !msg.content && (
-            <span className="inline-flex items-center gap-1 h-4">
-              <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '160ms' }} />
-              <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '320ms' }} />
-            </span>
-          )}
+              {/* typing dots */}
+              {msg.streaming && !msg.content && (
+                <span className="inline-flex items-center gap-1 h-4">
+                  <span className="w-2 h-2 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '160ms' }} />
+                  <span className="w-2 h-2 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '320ms' }} />
+                </span>
+              )}
 
-          {/* blinking cursor while streaming text */}
-          {msg.streaming && msg.content && (
-            <span className="ml-0.5 inline-block w-0.5 h-3.5 bg-gray-400 animate-pulse align-middle" />
+              {/* blinking cursor */}
+              {msg.streaming && msg.content && (
+                <span className="ml-0.5 inline-block w-0.5 h-3.5 bg-indigo-400 animate-pulse align-middle rounded-full" />
+              )}
+            </>
           )}
         </div>
 
         {/* sources */}
         {msg.sources && msg.sources.length > 0 && (
-          <div className="w-full">
+          <div className="w-full px-1">
             <button
               onClick={() => setOpen((v) => !v)}
-              className="text-[11px] text-gray-400 hover:text-indigo-500 transition-colors"
+              className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-indigo-500
+                         transition-colors font-medium"
             >
-              {open
-                ? '▾ hide sources'
-                : `▸ ${msg.sources.length} source${msg.sources.length > 1 ? 's' : ''}`}
+              <ChevronIcon open={open} />
+              {open ? 'Hide sources' : `${msg.sources.length} source${msg.sources.length > 1 ? 's' : ''}`}
             </button>
             {open && (
-              <ul className="mt-1 pl-2 border-l-2 border-indigo-100 space-y-1">
+              <ul className="mt-1.5 pl-2 border-l-2 border-indigo-100 space-y-1">
                 {msg.sources.map((s) => (
-                  <li key={s.n} className="flex items-center gap-1.5 text-[11px] text-gray-400">
-                    <span className="font-mono text-gray-300">[{s.n}]</span>
+                  <li key={s.n} className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                    <span className="font-mono text-slate-300 shrink-0">[{s.n}]</span>
                     <span className="truncate">{s.title}</span>
                     {s.is_fork && (
-                      <span className="shrink-0 text-[9px] border border-amber-300 text-amber-500 px-1 rounded">
+                      <span className="shrink-0 text-[9px] border border-amber-200 text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded-full">
                         fork
                       </span>
                     )}
