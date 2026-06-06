@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     # Groq — primary LLM backend (faster, higher rate limit)
     groq_api_key: str = ""
     groq_base_url: str = "https://api.groq.com/openai/v1"
+    enable_groq: bool = False
 
     # Vector store
     database_url: str = ""
@@ -58,7 +59,7 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def use_groq(self) -> bool:
-        return bool(self.groq_api_key)
+        return bool(self.groq_api_key) and self.enable_groq
 
     @computed_field
     @property

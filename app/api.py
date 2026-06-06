@@ -43,7 +43,11 @@ class ChatRequest(BaseModel):
 
 @app.api_route("/health", methods=["GET", "HEAD"])
 def health() -> dict:
-    return {"status": "ok", "persona": settings.persona_name, "model": settings.chat_model}
+    return {
+        "status": "ok",
+        "persona": settings.persona_name,
+        "model": settings.effective_chat_model,
+    }
 
 
 @app.get("/debug")
@@ -55,7 +59,9 @@ def debug() -> dict:
         "groq_key_set": bool(settings.groq_api_key),
         "use_groq": settings.use_groq,
         "chat_model": settings.chat_model,
+        "effective_chat_model": settings.effective_chat_model,
         "voice_model": settings.voice_model,
+        "effective_voice_model": settings.effective_voice_model,
         "github_token_set": bool(settings.github_token),
         "database_url_set": bool(settings.database_url),
         "calcom_key_set": bool(settings.calcom_api_key),
