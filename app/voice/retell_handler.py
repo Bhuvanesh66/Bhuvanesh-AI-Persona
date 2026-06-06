@@ -18,8 +18,9 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from openai import AsyncOpenAI
 
 from app.config import settings
+from app.rag.retriever import retrieve
 from app.tools.cal_tools import TOOL_MAP, TOOL_SCHEMAS
-from app.voice.voice_answer import _GREETING, _system
+from app.voice.voice_answer import _GREETING, _system, _format_context
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +60,20 @@ def _retell_to_openai(transcript: list[dict]) -> list[dict]:
 
 
 def _build_messages(turns: list[dict]) -> list[dict]:
-    """Build messages for the LLM. Bio is in the system prompt so no RAG needed for voice."""
+    """Build messages for the LLM, including retrieval context for GitHub repo questions."""
     messages: list[dict] = [{"role": "system", "content": _system()}]
+
+    last_user_index = max((i for i, t in enumerate(turns) if t["role"] == "user"), default=-1)
+    last_user = turns[last_user_index]["content"] if last_user_index >= 0 else ""
+    chunks = retrieve(last_user) if last_user else []
+    context = _format_context(chunks) if chunks else ""
+
     for i, turn in enumerate(turns):
-        if turn["role"] == "user" and i == len(turns) - 1:
-            messages.append({"role": "user", "content": f"Caller: {turn['content']}"})
+        if i == last_user_index and turn["role"] == "user":
+            user_content = f"Caller: {turn['content']}"
+            if context:
+                user_content = f"CONTEXT:\n{context}\n\n---\n{user_content}"
+            messages.append({"role": "user", "content": user_content})
         else:
             messages.append(turn)
     return messages
