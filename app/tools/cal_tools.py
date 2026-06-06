@@ -63,9 +63,28 @@ def check_availability(date: str) -> dict:
 
 
 def _clean_email(email: str) -> str:
-    """Normalize email spoken by a caller, e.g. 'john dot doe at gmail dot com'."""
+    """Normalize email spoken by a caller.
+
+    Handles formats like:
+      - 'john dot doe at gmail dot com'
+      - 'r o y c e at gmail dot com'       (space-separated letters)
+      - 'roycerkg@gmail.com'               (already clean)
+    """
     e = email.strip().lower()
-    e = e.replace(" dot ", ".").replace(" at ", "@").replace(" ", "")
+
+    # Normalise spoken separators to standard chars
+    e = e.replace(" dot com", ".com")
+    e = e.replace(" dot ", ".")
+    e = e.replace(" at ", "@")
+    e = e.replace("at the rate ", "@")
+    e = e.replace(" dot net", ".net")
+    e = e.replace(" dot org", ".org")
+    e = e.replace(" dot io", ".io")
+    e = e.replace(" dot co", ".co")
+
+    # After keyword substitution, collapse remaining spaces
+    # (handles 'r o y c e' → 'royce' while preserving '@' and '.')
+    e = "".join(e.split())
     return e
 
 
